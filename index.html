@@ -4,12 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101828">
+  <meta name="description" content="داشبورد نمونه‌ی تحلیل کسب‌وکار با فیلتر، نمودار و خروجی CSV">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 <title>Nexa Insights | داشبورد تحلیل کسب‌وکار</title>
   <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap">
 <style>
 :root {
-  --bg:#f5f7fb; --surface:#fff; --text:#172033; --muted:#7b8498;
+  --bg:#f5f7fb; --surface:#fff; --text:#172033; --muted:#5b657a;
   --border:#e8ecf3; --primary:#635bff; --primary-light:#eeedff;
   --green:#159a72; --red:#d94b64; --amber:#bd8017;
   --shadow:0 8px 28px rgba(30,42,75,.055);
@@ -192,7 +194,7 @@ tbody tr:hover{background:#fafaff}
           <div class="kpi-value" id="kpiOrders">—</div><div class="kpi-foot" id="ordersFoot">تعداد سفارش‌های مطابق فیلتر</div>
         </article>
         <article class="card">
-          <div class="kpi-top"><span>میانگین سفارش موفق</span><span class="kpi-icon">◈</span></div>
+          <div class="kpi-top"><span>میانگین ارزش سفارش</span><span class="kpi-icon">◈</span></div>
           <div class="kpi-value" id="kpiAverage">—</div><div class="kpi-foot">تومان · بر مبنای فروش خالص</div>
         </article>
         <article class="card">
@@ -230,7 +232,7 @@ tbody tr:hover{background:#fafaff}
     </section>
 
     <section id="products" class="page-panel">
-      <div class="section-head"><div><h2>عملکرد محصولات</h2><p>مرتب‌شده بر اساس تعداد سفارش در داده‌های فیلترشده</p></div></div>
+      <div class="section-head"><div><h2>عملکرد محصولات</h2><p>مرتب‌شده بر اساس مرتب‌شده بر اساس درآمد در داده‌های فیلترشده</p></div></div>
       <div class="product-grid" id="productGrid"></div>
     </section>
 
@@ -260,7 +262,7 @@ tbody tr:hover{background:#fafaff}
         <div id="emptyState" class="empty" hidden>سفارشی با این شرایط پیدا نشد.</div>
       </div>
     </article>
-    <footer class="footer"><span>© 2026 Nexa Insights · نمونه آموزشی</span><span>HTML · CSS · JavaScript | بدون نیاز به سرور</span></footer>
+    <footer class="footer"><span>ساخته شده توسط مریم · نمونه وبسایت تعاملی به دستور جناب آقای مهندس فرشاد</span></footer>
   </main>
 </div>
 
@@ -314,15 +316,19 @@ const palette = ["#635bff","#16a085","#e8a23a","#e06b87"];
 let sortKey = "id";
 let sortDirection = -1;
 
+const normalize = s => String(s).toLocaleLowerCase("fa")
+  .replace(/ي/g,"ی").replace(/ك/g,"ک")
+  .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+  .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
 function getFilteredOrders() {
   const days = Number($("range").value);
   const category = $("category").value;
-  const query = $("search").value.trim().toLocaleLowerCase("fa");
+  const query = normalize($("search").value.trim());
   return orders.filter(o => {
-    if (o.day > days) return false;
+   if (o.day <= 30 - days) return false; // فقط روزهای جدید (۳۰ جدیدترین روز است);
     if (category !== "all" && o.category !== category) return false;
     if (query) {
-      const text = `${o.id} ${o.customer} ${o.product} ${o.category} ${o.status}`.toLocaleLowerCase("fa");
+      const text = normalize(`${o.id} ${o.customer} ${o.product} ${o.category} ${o.status}`);
       if (!text.includes(query)) return false;
     }
     return true;
@@ -409,12 +415,14 @@ function renderLineChart(targetId,list) {
   const W=600,H=230,L=58,R=14,T=15,B=32;
   const pw=W-L-R,ph=H-T-B;
   const maxValue=Math.max(1,...dayValues.map(d=>d.value));
-  const maxTick=Math.ceil(maxValue/1000000)*1000000 || 1000000;
+ const step=Math.max(500000,Math.ceil(maxValue/4/500000)*500000); // گام «گرد» ۵۰۰هزارتایی
+const maxTick=step*4;
   for(let i=0;i<=4;i++){
     const y=T+ph*i/4;
     svg.append(svgEl("line",{x1:L,y1:y,x2:W-R,y2:y,stroke:"#edf0f6","stroke-width":1}));
-    const tick=Math.round(maxTick*(1-i/4)/1000000);
-    svg.append(svgEl("text",{x:L-8,y:y+4,"text-anchor":"end",fill:"#8992a5","font-size":10},tick===0?"۰":`${tick}م`));
+    const tickValue=step*(4-i);
+const label=tickValue===0?"۰":new Intl.NumberFormat("fa-IR",{maximumFractionDigits:2}).format(tickValue/1000000)+"م = میلیون تومان";
+svg.append(svgEl("text",{x:L-8,y:y+4,"text-anchor":"end",fill:"#5b657a","font-size":10},label));
   }
   const pts=dayValues.map((d,i)=>({
     x: L+(dayValues.length<=1?pw/2:i*pw/(dayValues.length-1)),
@@ -477,9 +485,9 @@ function renderAll() {
   renderCategoryBars(list,"categoryBars");
   renderCategoryBars(list,"salesCategoryBars");
   renderProducts(list);
-  $("chartSubtitle").textContent=`${count(Math.max(1,Number($("range").value)))} روز انتخابی · داده‌های نمونه`;
+  $("chartSubtitle").textContent=`${count(Math.min(30,Number($("range").value)))} روز · محور عمودی به میلیون تومان · داده‌های نمونه`;
 }
-
+let lastFocus=null;
 function openOrder(id) {
   const o=orders.find(x=>x.id===id);
   if(!o) return;
@@ -493,11 +501,14 @@ function openOrder(id) {
       <div class="detail"><small>وضعیت</small><strong><span class="status ${statusClass(o.status)}">${o.status}</span></strong></div>
       <div class="detail"><small>روز ثبت در داده نمونه</small><strong>${count(o.day)}</strong></div>
     </div>`;
+  lastFocus=document.activeElement;
   $("modalBackdrop").classList.add("open");
   $("closeModal").focus();
 }
 function closeModal() {
+  if(!$("modalBackdrop").classList.contains("open")) return;
   $("modalBackdrop").classList.remove("open");
+  if(lastFocus) lastFocus.focus();
 }
 function exportCSV() {
   const list=getFilteredOrders();
