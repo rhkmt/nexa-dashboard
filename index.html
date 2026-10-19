@@ -421,7 +421,7 @@ const maxTick=step*4;
     const y=T+ph*i/4;
     svg.append(svgEl("line",{x1:L,y1:y,x2:W-R,y2:y,stroke:"#edf0f6","stroke-width":1}));
     const tickValue=step*(4-i);
-const label=tickValue===0?"۰":new Intl.NumberFormat("fa-IR",{maximumFractionDigits:2}).format(tickValue/1000000)+"م = میلیون تومان";
+const label=tickValue===0?"۰":new Intl.NumberFormat("fa-IR",{maximumFractionDigits:2}).format(tickValue/1000000)+" م ";
 svg.append(svgEl("text",{x:L-8,y:y+4,"text-anchor":"end",fill:"#5b657a","font-size":10},label));
   }
   const pts=dayValues.map((d,i)=>({
